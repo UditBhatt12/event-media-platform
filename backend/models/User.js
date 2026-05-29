@@ -19,7 +19,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['Admin', 'Photographer', 'Club Member', 'Viewer'],
         default: 'Viewer'
-    }
+    },
+    favourites: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Media'
+    }]
 }, { timestamps: true });
 
 userSchema.pre('save', async function(next) {

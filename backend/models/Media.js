@@ -23,8 +23,16 @@ const mediaSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    tags: [{
-        type: String
+    aiTags: [{ 
+        type: String 
+    }],
+    userTags: [{ 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User' 
+    }],
+    likes: [{ 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User' 
     }]
 }, { timestamps: true });
 
