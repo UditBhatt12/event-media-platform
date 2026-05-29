@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
+const socialRoutes = require('./routes/socialRoutes');
 
 // Connect to database
 connectDB();
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/social', socialRoutes);
 
 // Health Check Route
 app.get('/api/health', (req, res) => {
