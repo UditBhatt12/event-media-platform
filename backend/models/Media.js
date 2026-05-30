@@ -26,6 +26,10 @@ const mediaSchema = new mongoose.Schema({
     aiTags: [{ 
         type: String 
     }],
+    faceDescriptor: {
+        type: [Number], // Stores the mathematical face map array
+        default: []
+    },
     userTags: [{ 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User' 
