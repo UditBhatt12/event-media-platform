@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const eventRoutes = require('./routes/eventRoutes');
@@ -11,6 +13,33 @@ const socialRoutes = require('./routes/socialRoutes');
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
+
+// Setup Socket.io
+const io = new Server(server, {
+    cors: {
+        origin: '*', // We will restrict this to the Vercel domain during deployment
+        methods: ['GET', 'POST']
+    }
+});
+
+// Make io accessible inside our controllers
+app.set('io', io);
+
+// Handle socket connections
+io.on('connection', (socket) => {
+    console.log(`New socket connection: ${socket.id}`);
+
+    // Users will join a private room using their User ID to receive personal notifications
+    socket.on('join_personal_room', (userId) => {
+        socket.join(userId);
+        console.log(`User ${userId} joined personal notification room`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log(`Socket disconnected: ${socket.id}`);
+    });
+});
 
 // Middlewares
 app.use(cors());
@@ -30,6 +59,6 @@ app.get('/api/health', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
