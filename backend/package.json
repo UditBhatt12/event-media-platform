@@ -10,7 +10,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@vladmandic/face-api": "^1.7.15",
     "bcryptjs": "^3.0.3",
+    "canvas": "^3.2.3",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
