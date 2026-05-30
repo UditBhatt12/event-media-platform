@@ -8,13 +8,28 @@ const toggleLike = async (req, res) => {
         if (!media) return res.status(404).json({ message: 'Media not found' });
 
         const index = media.likes.indexOf(req.user._id);
+        let action = '';
+
         if (index === -1) {
             media.likes.push(req.user._id);
+            action = 'liked';
         } else {
             media.likes.splice(index, 1);
+            action = 'unliked';
         }
         
         await media.save();
+
+        // Emit Real-Time Notification
+        if (action === 'liked' && media.uploadedBy.toString() !== req.user._id.toString()) {
+            const io = req.app.get('io');
+            io.to(media.uploadedBy.toString()).emit('new_notification', {
+                type: 'LIKE',
+                message: `${req.user.name} liked your photo.`,
+                mediaId: media._id
+            });
+        }
+
         res.status(200).json(media.likes);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -31,6 +46,20 @@ const addComment = async (req, res) => {
         });
         
         const populatedComment = await comment.populate('user', 'name');
+
+        // Fetch media to find the owner
+        const media = await Media.findById(req.params.mediaId);
+
+        // Emit Real-Time Notification
+        if (media && media.uploadedBy.toString() !== req.user._id.toString()) {
+            const io = req.app.get('io');
+            io.to(media.uploadedBy.toString()).emit('new_notification', {
+                type: 'COMMENT',
+                message: `${req.user.name} commented on your photo.`,
+                mediaId: media._id
+            });
+        }
+
         res.status(201).json(populatedComment);
     } catch (error) {
         res.status(500).json({ message: error.message });
