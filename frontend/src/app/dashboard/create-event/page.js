@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
 export default function CreateEvent() {
+  const [isPrivate, setIsPrivate] = useState(false);
   const router = useRouter();
   const [formData, setFormData] = useState({
     title: '',
@@ -18,16 +19,16 @@ export default function CreateEvent() {
     try {
       const token = localStorage.getItem('token'); 
       
-      // 🚨 THE FIX: Translate frontend state into the exact keys MongoDB requires
       const backendPayload = {
-        name: formData.title,         // Translating 'title' to 'name'
+        name: formData.title,         
         description: formData.description,
-        eventDate: formData.date,     // Translating 'date' to 'eventDate'
+        eventDate: formData.date,     
         location: formData.location,
-        category: "General"           // Satisfying the required 'category' field
+        category: "General",
+        // 👇 FIXED: Added isPrivate to the payload so the database saves it!
+        isPrivate: isPrivate           
       };
 
-      // Send the translated payload to the backend
       const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/events`, backendPayload, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -101,6 +102,20 @@ export default function CreateEvent() {
                 onChange={(e) => setFormData({...formData, location: e.target.value})}
               />
             </div>
+          </div>
+
+          {/* 👇 FIXED: The Checkbox UI */}
+          <div className="flex items-center gap-2 mt-4 mb-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <input 
+                  type="checkbox" 
+                  id="isPrivate" 
+                  checked={isPrivate} 
+                  onChange={(e) => setIsPrivate(e.target.checked)} 
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+              />
+              <label htmlFor="isPrivate" className="text-sm font-semibold text-gray-700 cursor-pointer select-none">
+                  Make this event Private (Only Admins and Club Members can view)
+              </label>
           </div>
 
           <button

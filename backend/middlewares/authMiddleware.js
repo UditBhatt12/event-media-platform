@@ -19,13 +19,16 @@ const protect = async (req, res, next) => {
     }
 };
 
+// 👇 NEW: The Bouncer Middleware
 const authorizeRoles = (...roles) => {
     return (req, res, next) => {
-        if (!roles.includes(req.user.role)) {
-            return res.status(403).json({ 
-                message: `User role '${req.user.role}' is not authorized to access this route` 
+        // If the user's role is NOT in the list of allowed roles, kick them out
+        if (!req.user || !roles.includes(req.user.role)) {
+            return res.status(403).json({
+                message: `Access Denied: Your role (${req.user ? req.user.role : 'Guest'}) is not authorized.`
             });
         }
+        // If they have the right role, let them through!
         next();
     };
 };
