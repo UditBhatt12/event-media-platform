@@ -97,4 +97,49 @@ const toggleLike = async (req, res) => {
   }
 };
 
-module.exports = { uploadMedia, getEventMedia ,toggleLike};
+// Add a comment to a photo
+const addComment = async (req, res) => {
+  try {
+    const { text } = req.body;
+    
+    if (!text) {
+      return res.status(400).json({ message: "Comment text is required" });
+    }
+
+    const media = await Media.findById(req.params.id);
+    
+    if (!media) {
+      return res.status(404).json({ message: "Media not found" });
+    }
+
+    // 1. Create the comment object
+    const newComment = {
+      user: req.user._id,
+      text: text
+    };
+
+    // 2. Add it to the photo's array and save
+    media.comments.push(newComment);
+    await media.save();
+
+    // 3. Send a notification to the owner!
+    if (media.user && media.user.toString() !== req.user._id.toString()) {
+      await Notification.create({
+        recipient: media.user,       
+        sender: req.user._id,        
+        type: 'comment',
+        mediaId: media._id,
+        // Keep it brief for the dropdown UI
+        message: `commented: "${text.substring(0, 20)}${text.length > 20 ? '...' : ''}"` 
+      });
+    }
+
+    // Send back the updated comments array
+    res.status(200).json({ comments: media.comments });
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    res.status(500).json({ message: "Server error while adding comment" });
+  }
+};
+
+module.exports = { uploadMedia, getEventMedia ,toggleLike,addComment};
