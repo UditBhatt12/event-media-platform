@@ -4,8 +4,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
 
-
-
 export default function UploadMedia() {
   const router = useRouter();
   const [file, setFile] = useState(null);
@@ -13,13 +11,33 @@ export default function UploadMedia() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
 
+  // 👇 NEW: State to hold the user's real events and the chosen event ID
+  const [events, setEvents] = useState([]);
+  const [eventId, setEventId] = useState(''); 
 
-  const [eventId, setEventId] = useState('652c56a81e3a4b7f9d8a5c31'); // Dummy MongoDB ID
-
-  // Security Check: Kick out users without a token
+  // Fetch the events as soon as the page loads
   useEffect(() => {
-    if (!localStorage.getItem('token')) {
+    const fetchEvents = async (token) => {
+      try {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setEvents(res.data);
+        
+        // If they have events, auto-select the first one in the dropdown
+        if (res.data.length > 0) {
+          setEventId(res.data[0]._id);
+        }
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    };
+
+    const token = localStorage.getItem('token');
+    if (!token) {
       router.push('/login');
+    } else {
+      fetchEvents(token);
     }
   }, [router]);
 
@@ -27,43 +45,46 @@ export default function UploadMedia() {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
       setFile(selectedFile);
-      setPreview(URL.createObjectURL(selectedFile)); // Create a temporary local preview
+      setPreview(URL.createObjectURL(selectedFile));
     }
   };
 
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file) return;
+    if (!eventId) {
+      setStatus({ type: 'error', message: 'Please select an event first.' });
+      return;
+    }
 
     setLoading(true);
     setStatus({ type: '', message: '' });
 
     const formData = new FormData();
-    formData.append('files', file); // Appending the file to the form data
-    formData.append('eventId',eventId);///////////This is added new
+    formData.append('files', file); 
+    formData.append('eventId', eventId); // Using the dynamic ID from the dropdown!
+
     try {
       const token = localStorage.getItem('token');
-      
-      // Send to your live Render backend
       await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/media/upload`, formData, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data' // Required for file uploads
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}` 
         }
       });
       
-      setStatus({ type: 'success', message: '✅ Photo uploaded successfully! AI tagging initiated.' });
+      setStatus({ type: 'success', message: 'Upload complete! AI tags generated.' });
+      setFile(null);
+      setPreview(null);
       
-      // Clear the form and send them back to the dashboard after 2 seconds
+      // Bonus: Send them straight to the gallery they just uploaded to!
       setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
-      
-    } catch (err) {
-      setStatus({ 
-        type: 'error', 
-        message: '❌ Upload failed: ' + (err.response?.data?.message || 'Server error') 
-      });
+        router.push(`/event/${eventId}`);
+      }, 1500);
+
+    } catch (error) {
+      console.error(error);
+      setStatus({ type: 'error', message: 'Upload failed. Try again.' });
     } finally {
       setLoading(false);
     }
@@ -79,58 +100,69 @@ export default function UploadMedia() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-        {status.message && (
-          <div className={`p-4 rounded-md mb-6 ${status.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-            {status.message}
-          </div>
-        )}
-        
         <form onSubmit={handleUpload} className="space-y-6">
-
           
-
-          {/* Event ID Input */}
-       <div>
-         <label className="block text-sm font-medium text-gray-700 mb-1">
-           Event ID (Testing)
-         </label>
-         <input
-           type="text"
-           required
-           value={eventId}
-           onChange={(e) => setEventId(e.target.value)}
-           className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-         />
-       </div>
-
-
-          {/* Drag & Drop Area / File Input */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex justify-center items-center h-64 bg-gray-50 hover:bg-gray-100 transition relative">
-            {preview ? (
-              <img src={preview} alt="Preview" className="h-full object-contain rounded-md" />
+          {/* 👇 NEW: The Dynamic Dropdown Menu */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Select Event</label>
+            {events.length > 0 ? (
+              <select
+                value={eventId}
+                onChange={(e) => setEventId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                required
+              >
+                <option value="" disabled>Choose an event...</option>
+                {events.map((evt) => (
+                  <option key={evt._id} value={evt._id}>
+                    {evt.name}
+                  </option>
+                ))}
+              </select>
             ) : (
-              <div className="text-center">
-                <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <div className="mt-4 flex text-sm text-gray-600 justify-center">
-                  <label className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 p-1">
-                    <span>Upload a file</span>
-                    <input type="file" className="sr-only" accept="image/*" onChange={handleFileChange} />
-                  </label>
-                  <p className="pl-1 pt-1">or drag and drop</p>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF up to 10MB</p>
+              <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-100">
+                You need to create an event in your dashboard before uploading photos!
               </div>
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={!file || loading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          {/* File Upload Area */}
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center hover:bg-gray-50 transition-colors relative">
+            <input 
+              type="file" 
+              onChange={handleFileChange} 
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              accept="image/*"
+              required
+            />
+            {preview ? (
+              <div className="flex flex-col items-center">
+                <img src={preview} alt="Preview" className="h-48 object-cover rounded-md mb-4 shadow-sm" />
+                <p className="text-sm text-indigo-600 font-medium">Click to change photo</p>
+              </div>
+            ) : (
+              <div>
+                <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <p className="text-gray-600 font-medium">Click to browse or drag and drop</p>
+                <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG up to 10MB</p>
+              </div>
+            )}
+          </div>
+
+          {status.message && (
+            <div className={`p-4 rounded-md text-sm font-medium ${status.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+              {status.message}
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={loading || events.length === 0}
+            className={`w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-white font-bold transition-colors ${
+              loading || events.length === 0 ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+            }`}
           >
-            {loading ? 'Uploading to Cloudinary & Running AI...' : 'Upload Photo'}
+            {loading ? 'Uploading & AI Tagging...' : 'Upload Photo'}
           </button>
         </form>
       </div>

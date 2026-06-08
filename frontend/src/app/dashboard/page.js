@@ -2,24 +2,34 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import axios from 'axios';
 
 export default function Dashboard() {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
-
-  // Mock data for UI testing (until we connect the backend)
-  const mockEvents = [
-    { id: "12345", title: "Summer Tech Hackathon 2026", date: "2026-07-15", photoCount: 24 },
-    { id: "67890", title: "IIT Roorkee Alumni Meet", date: "2026-08-20", photoCount: 156 },
-  ];
+  const [events, setEvents] = useState([]); 
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if the secure JWT token exists in the browser
+    const fetchRealEvents = async (token) => {
+      try {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setEvents(res.data); 
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const token = localStorage.getItem('token');
     if (!token) {
-      router.push('/login'); 
+      router.push('/login');
     } else {
       setIsAuthorized(true);
+      fetchRealEvents(token); 
     }
   }, [router]);
 
@@ -72,24 +82,36 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Events List */}
+        {/* Real Events List */}
         <div>
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Events</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockEvents.map(event => (
-              <Link key={event.id} href={`/event/${event.id}`} className="block group">
-                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group-hover:border-indigo-300">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            {events.length > 0 ? (
+              events.map(event => (
+                <Link key={event._id} href={`/event/${event._id}`} className="block group">
+                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group-hover:border-indigo-300">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                      </div>
                     </div>
-                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-medium">{event.photoCount} Photos</span>
+                    {/* 👇 UPDATED: Changed event.title to event.name */}
+                    <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors">
+                      {event.name}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {/* 👇 UPDATED: Changed event.date to event.eventDate */}
+                      {event.eventDate ? new Date(event.eventDate).toLocaleDateString() : ''} 
+                      {event.location ? ` • ${event.location}` : ''}
+                    </p>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors">{event.title}</h3>
-                  <p className="text-sm text-gray-500">{event.date}</p>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-full py-8 text-center text-gray-500 italic bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                No events found. Click "+ Create Event" to get started!
+              </div>
+            )}
           </div>
         </div>
 

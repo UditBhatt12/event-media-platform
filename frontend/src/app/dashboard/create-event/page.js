@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 export default function CreateEvent() {
   const router = useRouter();
@@ -12,14 +13,34 @@ export default function CreateEvent() {
     location: ''
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Frontend-only mode: We will connect this to axios later!
-    console.log("Mock Event Created:", formData);
-    
-    // Simulate a successful creation and redirect
-    alert("UI Test: Event created successfully!");
-    router.push('/dashboard');
+    try {
+      const token = localStorage.getItem('token'); 
+      
+      // 🚨 THE FIX: Translate frontend state into the exact keys MongoDB requires
+      const backendPayload = {
+        name: formData.title,         // Translating 'title' to 'name'
+        description: formData.description,
+        eventDate: formData.date,     // Translating 'date' to 'eventDate'
+        location: formData.location,
+        category: "General"           // Satisfying the required 'category' field
+      };
+
+      // Send the translated payload to the backend
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/events`, backendPayload, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      alert("Event created successfully!");
+      router.push('/dashboard'); 
+      
+    } catch (error) {
+      console.error("Error creating event:", error);
+      alert("Failed to create event. Check the browser console!");
+    }
   };
 
   return (

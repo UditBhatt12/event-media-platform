@@ -1,7 +1,6 @@
 const Media = require('../models/Media');
 const Event = require('../models/Event');
-const { generateTags } = require('../utils/imageTagger');
-const { getFaceDescriptor } = require('../utils/faceRecognition');
+const cloudinary = require('cloudinary').v2; // 👈 Added this to talk to Cloudinary directly!
 
 const uploadMedia = async (req, res) => {
     try {
@@ -15,10 +14,12 @@ const uploadMedia = async (req, res) => {
             return res.status(400).json({ message: 'No files uploaded' });
         }
 
-        // Process all uploaded files concurrently through the AI models
+        // Process all uploaded files concurrently
         const mediaDataPromises = req.files.map(async (file) => {
-            const aiTags = await generateTags(file.path);
-            const faceDescriptor = await getFaceDescriptor(file.path);
+            
+            // 🚨 NEW: Ask Cloudinary for the AI metadata it just generated!
+            const cloudData = await cloudinary.api.resource(file.filename);
+            const generatedTags = cloudData.tags || []; 
 
             return {
                 event: eventId,
@@ -26,8 +27,8 @@ const uploadMedia = async (req, res) => {
                 imageUrl: file.path,
                 cloudinaryId: file.filename,
                 isPrivate: req.body.isPrivate || false,
-                aiTags: aiTags || [],
-                faceDescriptor: faceDescriptor || []
+                aiTags: generatedTags, // 👈 THE MAGIC HAPPENS HERE!
+                faceDescriptor: []    
             };
         });
 
@@ -36,6 +37,7 @@ const uploadMedia = async (req, res) => {
         // Bulk insert into MongoDB
         const savedMedia = await Media.insertMany(mediaData);
         res.status(201).json(savedMedia);
+        
     } catch (error) {
         console.error("Upload error:", error);
         res.status(500).json({ message: error.message });
