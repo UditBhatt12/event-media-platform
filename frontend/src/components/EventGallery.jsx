@@ -7,7 +7,7 @@ export default function EventGallery({ eventId }) {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
 
-    // 👇 NEW: Modal and Comment State
+    // Modal and Comment State
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const [commentText, setCommentText] = useState("");
     const [commenting, setCommenting] = useState(false);
@@ -35,7 +35,6 @@ export default function EventGallery({ eventId }) {
         return photo.aiTags && photo.aiTags.some(tag => tag.toLowerCase().includes(query));
     });
 
-    // 👇 UPDATED: Added `e` to stop the click event from bubbling up to the image container
     const handleLike = async (photoId, e) => {
         if (e) e.stopPropagation(); 
         
@@ -63,7 +62,35 @@ export default function EventGallery({ eventId }) {
         }
     };
 
-    // 👇 NEW: Handle submitting a comment
+    // Cloudinary Dynamic Watermark Download
+    const handleDownload = async (imageUrl) => {
+        try {
+            // 1. Create the Cloudinary watermark transformation string
+            // We use standard Arial, size 40, bold, white color, 70% opacity, placed bottom-right (south_east)
+            const watermarkString = "l_text:Arial_40_bold:EventLens%20AI,co_white,g_south_east,x_20,y_20,o_70";
+            
+            // 2. Inject the watermark instruction into the middle of the Cloudinary URL
+            const urlParts = imageUrl.split('/upload/');
+            const watermarkedUrl = `${urlParts[0]}/upload/${watermarkString}/${urlParts[1]}`;
+
+            // 3. Fetch the image as a Blob (this forces a download instead of just opening a new tab)
+            const response = await fetch(watermarkedUrl);
+            const blob = await response.blob();
+            
+            // 4. Create a temporary invisible link to trigger the file download
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `eventlens_watermarked_${Date.now()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error("Error downloading image:", error);
+            alert("Failed to download image safely.");
+        }
+    };
+
+    // Handle submitting a comment
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
         if (!commentText.trim()) return;
@@ -116,7 +143,7 @@ export default function EventGallery({ eventId }) {
                     filteredPhotos.map((photo) => (
                         <div key={photo._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group">
                             
-                            {/* 👇 UPDATED: Clicking the image opens the modal */}
+                            {/* Clicking the image opens the modal */}
                             <div 
                                 className="h-64 overflow-hidden relative bg-gray-100 cursor-pointer"
                                 onClick={() => setSelectedPhoto(photo)}
@@ -161,7 +188,7 @@ export default function EventGallery({ eventId }) {
                 )}
             </div>
 
-            {/* 👇 NEW: The Interactive Lightbox Modal */}
+            {/* The Interactive Lightbox Modal */}
             {selectedPhoto && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 sm:p-6 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col md:flex-row overflow-hidden relative shadow-2xl relative">
@@ -177,10 +204,23 @@ export default function EventGallery({ eventId }) {
                         {/* Left Side: Full Image */}
                         <div className="w-full md:w-3/5 bg-gray-900 flex items-center justify-center p-4 relative group">
                             <img src={selectedPhoto.imageUrl} alt="Selected" className="max-h-[40vh] md:max-h-[85vh] object-contain rounded-lg" />
+                            
+                            {/* Bottom Left: Like Button */}
                             <div className="absolute bottom-6 left-6">
                                  <button onClick={(e) => handleLike(selectedPhoto._id, e)} className="flex items-center gap-2 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full hover:bg-black/80 transition-all shadow-lg border border-white/10">
                                     <svg className={`w-6 h-6 transition-colors ${selectedPhoto.likes && selectedPhoto.likes.length > 0 ? 'text-red-500 fill-current' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                                     <span className="font-bold">{selectedPhoto.likes ? selectedPhoto.likes.length : 0} Likes</span>
+                                </button>
+                            </div>
+
+                            {/* Bottom Right: Download Button */}
+                            <div className="absolute bottom-6 right-6">
+                                <button 
+                                    onClick={() => handleDownload(selectedPhoto.imageUrl)} 
+                                    className="flex items-center gap-2 bg-indigo-600/90 backdrop-blur-md text-white px-4 py-2 rounded-full hover:bg-indigo-500 transition-all shadow-lg border border-white/10"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    <span className="font-bold">Download</span>
                                 </button>
                             </div>
                         </div>
