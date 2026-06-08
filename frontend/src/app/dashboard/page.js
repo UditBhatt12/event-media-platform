@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
@@ -9,19 +9,29 @@ export default function Dashboard() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [events, setEvents] = useState([]); 
   const [loading, setLoading] = useState(true);
-  
-  // 👇 NEW: State to track how the user wants to sort the events
   const [sortBy, setSortBy] = useState('date'); 
 
+  // 👇 NEW: Notification State
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
   useEffect(() => {
-    const fetchRealEvents = async (token) => {
+    const fetchData = async (token) => {
       try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events`, {
+        // Fetch Events
+        const eventRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setEvents(res.data); 
+        setEvents(eventRes.data); 
+
+        // 👇 NEW: Fetch Notifications
+        const notifRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setNotifications(notifRes.data);
+
       } catch (error) {
-        console.error("Error fetching events:", error);
+        console.error("Error fetching dashboard data:", error);
       } finally {
         setLoading(false);
       }
@@ -32,7 +42,7 @@ export default function Dashboard() {
       router.push('/login');
     } else {
       setIsAuthorized(true);
-      fetchRealEvents(token); 
+      fetchData(token); 
     }
   }, [router]);
 
@@ -41,18 +51,10 @@ export default function Dashboard() {
     router.push('/login');
   };
 
-  // 👇 NEW: The Sorting Logic!
   const sortedEvents = [...events].sort((a, b) => {
-    if (sortBy === 'date') {
-      // Sort by newest date first
-      return new Date(b.eventDate) - new Date(a.eventDate);
-    } else if (sortBy === 'name') {
-      // Sort alphabetically A-Z
-      return a.name.localeCompare(b.name);
-    } else if (sortBy === 'category') {
-      // Sort by category alphabetically
-      return (a.category || "").localeCompare(b.category || "");
-    }
+    if (sortBy === 'date') return new Date(b.eventDate) - new Date(a.eventDate);
+    if (sortBy === 'name') return a.name.localeCompare(b.name);
+    if (sortBy === 'category') return (a.category || "").localeCompare(b.category || "");
     return 0;
   });
 
@@ -71,7 +73,55 @@ export default function Dashboard() {
         {/* Dashboard Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
           <h1 className="text-3xl font-extrabold text-gray-900">Your Workspace</h1>
-          <div className="flex gap-4">
+          
+          <div className="flex items-center gap-4">
+            {/* 👇 NEW: The Notification Bell UI */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 text-gray-500 hover:text-indigo-600 transition bg-gray-50 rounded-full hover:bg-gray-100"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                {/* The Red Notification Dot */}
+                {notifications.length > 0 && (
+                  <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                )}
+              </button>
+
+              {/* The Dropdown Menu */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <h3 className="font-bold text-gray-800">Notifications</h3>
+                    <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-bold">{notifications.length} New</span>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length > 0 ? (
+                      notifications.map(notif => (
+                        <div key={notif._id} className="p-4 border-b border-gray-50 hover:bg-gray-50 flex gap-3 items-start transition cursor-pointer">
+                          {notif.mediaId?.imageUrl ? (
+                            <img src={notif.mediaId.imageUrl} alt="thumbnail" className="w-12 h-12 rounded-lg object-cover shadow-sm border border-gray-200" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-400">
+                              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm text-gray-800">
+                              <span className="font-bold text-indigo-600">{notif.sender?.name || 'Someone'}</span> {notif.message.replace('Someone ', '')}
+                            </p>
+                            <span className="text-xs text-gray-400 font-medium">{new Date(notif.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center text-sm text-gray-500 italic">No new notifications.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Link 
               href="/dashboard/create-event"
               className="bg-green-50 text-green-700 hover:bg-green-100 px-4 py-2 rounded-md text-sm font-bold transition shadow-sm border border-green-200"
@@ -104,7 +154,6 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <h2 className="text-2xl font-bold text-gray-900">Your Events</h2>
           
-          {/* 👇 NEW: The Sorting Dropdown UI */}
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-500 font-medium">Sort by:</label>
             <select 
@@ -119,7 +168,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 👇 UPDATED: Mapping over sortedEvents instead of raw events */}
+        {/* Events Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {sortedEvents.length > 0 ? (
             sortedEvents.map(event => (
@@ -129,7 +178,6 @@ export default function Dashboard() {
                     <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                     </div>
-                    {/* Render the category badge if it exists */}
                     {event.category && (
                       <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-medium">
                         {event.category}

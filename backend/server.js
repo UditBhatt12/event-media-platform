@@ -8,10 +8,12 @@ const authRoutes = require('./routes/authRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
 const socialRoutes = require('./routes/socialRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // Connect to database
 connectDB();
 
+// Initialize the app FIRST
 const app = express();
 const server = http.createServer(app);
 
@@ -51,6 +53,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/social', socialRoutes);
+// 👇 FIXED: This is now safely below the app initialization!
+app.use('/api/notifications', notificationRoutes);
 
 // Health Check Route
 app.get('/api/health', (req, res) => {

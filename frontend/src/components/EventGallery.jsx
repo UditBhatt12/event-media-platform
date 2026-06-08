@@ -40,6 +40,34 @@ export default function EventGallery({ eventId }) {
         return matchesTag;
     });
 
+    // 👇 NEW: Function to handle the heart click
+    const handleLike = async (photoId) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert("You must be logged in to like photos!");
+                return;
+            }
+
+            // Hit the backend API we just built
+            const res = await axios.post(
+                `${process.env.NEXT_PUBLIC_API_URL}/media/${photoId}/like`,
+                {}, // Empty payload body
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            // Update the React state instantly so the UI feels fast
+            setPhotos(photos.map(photo => {
+                if (photo._id === photoId) {
+                    return { ...photo, likes: res.data.likes };
+                }
+                return photo;
+            }));
+        } catch (error) {
+            console.error("Error toggling like:", error);
+        }
+    };
+
     if (loading) {
         return <div className="text-center py-10 text-gray-500 font-medium">Loading smart gallery...</div>;
     }
@@ -66,12 +94,33 @@ export default function EventGallery({ eventId }) {
                 {filteredPhotos.length > 0 ? (
                     filteredPhotos.map((photo) => (
                         <div key={photo._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group">
+                            {/* Image Container with Like Overlay */}
                             <div className="h-64 overflow-hidden relative bg-gray-100">
                                 <img 
                                     src={photo.imageUrl} 
                                     alt="Event photo" 
                                     className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                                 />
+                                
+                                {/* 👇 NEW: The Interactive Heart Button */}
+                                <div className="absolute bottom-3 right-3">
+                                    <button 
+                                        onClick={() => handleLike(photo._id)}
+                                        className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm text-white px-3 py-1.5 rounded-full hover:bg-black/70 transition-all shadow-sm"
+                                    >
+                                        <svg 
+                                            className={`w-5 h-5 transition-colors ${photo.likes && photo.likes.length > 0 ? 'text-red-500 fill-current' : 'text-white'}`} 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                        </svg>
+                                        <span className="text-sm font-semibold">
+                                            {photo.likes ? photo.likes.length : 0}
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
                             
                             <div className="p-4">
