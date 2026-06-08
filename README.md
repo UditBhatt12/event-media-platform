@@ -90,5 +90,5 @@ NEXT_PUBLIC_API_URL=http://localhost:5001/api
 #### Start the Next.js development server:
 npm run dev
 
-👨‍💻 Author
+## 👨‍💻 Author
 Built by Udit Bhatt
