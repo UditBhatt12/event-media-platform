@@ -8,7 +8,7 @@ const protect = async (req, res, next) => {
             token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             req.user = await User.findById(decoded.id).select('-password');
-            next();
+            return next(); 
         } catch (error) {
             return res.status(401).json({ message: 'Not authorized, token failed' });
         }
@@ -19,16 +19,20 @@ const protect = async (req, res, next) => {
     }
 };
 
-// 👇 NEW: The Bouncer Middleware
 const authorizeRoles = (...roles) => {
     return (req, res, next) => {
-        // If the user's role is NOT in the list of allowed roles, kick them out
+        // 👇 HARDCODED ADMIN BYPASS: If this is your email, the bouncer always says YES.
+        if (req.user && req.user.email === 'uditbhatt1205@gmail.com') {
+            return next(); 
+        }
+        
+        // Standard check for everyone else
         if (!req.user || !roles.includes(req.user.role)) {
             return res.status(403).json({
                 message: `Access Denied: Your role (${req.user ? req.user.role : 'Guest'}) is not authorized.`
             });
         }
-        // If they have the right role, let them through!
+        
         next();
     };
 };

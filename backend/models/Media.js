@@ -53,7 +53,12 @@ const mediaSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
       }
-    }]
+    }],
+    // Add this inside your mongoose.Schema
+    faceDescriptors: {
+        type: [[Number]], // An array containing arrays of 128 numbers
+        default: []
+    },
 }, { timestamps: true });
 
 const Media = mongoose.model('Media', mediaSchema);

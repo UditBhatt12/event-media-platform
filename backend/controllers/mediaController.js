@@ -1,7 +1,10 @@
 const Media = require('../models/Media');
 const Event = require('../models/Event');
-const cloudinary = require('cloudinary').v2; // 👈 Added this to talk to Cloudinary directly!
+const cloudinary = require('cloudinary').v2; 
 const Notification = require('../models/Notification');
+const canvas = require('canvas'); 
+const { faceapi } = require('../config/faceApi'); 
+
 const uploadMedia = async (req, res) => {
     try {
         const { eventId } = req.body;
@@ -14,12 +17,23 @@ const uploadMedia = async (req, res) => {
             return res.status(400).json({ message: 'No files uploaded' });
         }
 
-        // Process all uploaded files concurrently
         const mediaDataPromises = req.files.map(async (file) => {
-            
-            // 🚨 NEW: Ask Cloudinary for the AI metadata it just generated!
             const cloudData = await cloudinary.api.resource(file.filename);
             const generatedTags = cloudData.tags || []; 
+
+            let descriptors = [];
+            try {
+                const img = await canvas.loadImage(file.path);
+                const detections = await faceapi
+                    .detectAllFaces(img)
+                    .withFaceLandmarks()
+                    .withFaceDescriptors();
+                
+                descriptors = detections.map(d => Array.from(d.descriptor));
+                console.log(`[AI Sync] Scanned ${descriptors.length} face(s) in photo: ${file.filename}`);
+            } catch (faceError) {
+                console.error(`[AI Error] Failed face tracking on file ${file.filename}:`, faceError);
+            }
 
             return {
                 event: eventId,
@@ -27,14 +41,12 @@ const uploadMedia = async (req, res) => {
                 imageUrl: file.path,
                 cloudinaryId: file.filename,
                 isPrivate: req.body.isPrivate || false,
-                aiTags: generatedTags, // 👈 THE MAGIC HAPPENS HERE!
-                faceDescriptor: []    
+                aiTags: generatedTags, 
+                faceDescriptors: descriptors 
             };
         });
 
         const mediaData = await Promise.all(mediaDataPromises);
-
-        // Bulk insert into MongoDB
         const savedMedia = await Media.insertMany(mediaData);
         res.status(201).json(savedMedia);
         
@@ -56,28 +68,17 @@ const getEventMedia = async (req, res) => {
     }
 };
 
-// Toggle Like on a photo
 const toggleLike = async (req, res) => {
   try {
-    // 👇 FIXED: Removed .populate('user') so Mongoose stops crashing!
     const media = await Media.findById(req.params.id); 
-    
-    if (!media) {
-      return res.status(404).json({ message: "Media not found" });
-    }
+    if (!media) return res.status(404).json({ message: "Media not found" });
 
     const isLiked = media.likes.includes(req.user._id);
 
     if (isLiked) {
-      // UNLIKE: Remove user ID
-      media.likes = media.likes.filter(
-        (userId) => userId.toString() !== req.user._id.toString()
-      );
+      media.likes = media.likes.filter(userId => userId.toString() !== req.user._id.toString());
     } else {
-      // LIKE: Add user ID
       media.likes.push(req.user._id);
-
-      // Only notify if the person liking the photo is NOT the owner
       if (media.user && media.user.toString() !== req.user._id.toString()) {
         await Notification.create({
           recipient: media.user,       
@@ -92,54 +93,71 @@ const toggleLike = async (req, res) => {
     await media.save();
     res.status(200).json({ likes: media.likes });
   } catch (error) {
-    console.error("Error toggling like:", error);
     res.status(500).json({ message: "Server error while toggling like" });
   }
 };
 
-// Add a comment to a photo
 const addComment = async (req, res) => {
   try {
     const { text } = req.body;
-    
-    if (!text) {
-      return res.status(400).json({ message: "Comment text is required" });
-    }
+    if (!text) return res.status(400).json({ message: "Comment text is required" });
 
     const media = await Media.findById(req.params.id);
-    
-    if (!media) {
-      return res.status(404).json({ message: "Media not found" });
-    }
+    if (!media) return res.status(404).json({ message: "Media not found" });
 
-    // 1. Create the comment object
-    const newComment = {
-      user: req.user._id,
-      text: text
-    };
-
-    // 2. Add it to the photo's array and save
+    const newComment = { user: req.user._id, text: text };
     media.comments.push(newComment);
     await media.save();
 
-    // 3. Send a notification to the owner!
     if (media.user && media.user.toString() !== req.user._id.toString()) {
       await Notification.create({
         recipient: media.user,       
         sender: req.user._id,        
         type: 'comment',
         mediaId: media._id,
-        // Keep it brief for the dropdown UI
         message: `commented: "${text.substring(0, 20)}${text.length > 20 ? '...' : ''}"` 
       });
     }
 
-    // Send back the updated comments array
     res.status(200).json({ comments: media.comments });
   } catch (error) {
-    console.error("Error adding comment:", error);
     res.status(500).json({ message: "Server error while adding comment" });
   }
 };
 
-module.exports = { uploadMedia, getEventMedia ,toggleLike,addComment};
+const searchByFace = async (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) return res.status(400).json({ message: "No file received by backend!" });
+
+        console.log("Analyzing selfie:", file.path);
+        const img = await canvas.loadImage(file.path);
+        
+        const selfieDetection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+        
+        if (!selfieDetection) {
+            return res.status(400).json({ message: "AI could not detect a clear face in this selfie. Try another!" });
+        }
+
+        const allMedia = await Media.find({});
+        
+        const matches = allMedia.filter(photo => {
+            if (!photo.faceDescriptors || !Array.isArray(photo.faceDescriptors) || photo.faceDescriptors.length === 0) {
+                return false;
+            }
+            return photo.faceDescriptors.some(desc => {
+                const distance = faceapi.euclideanDistance(selfieDetection.descriptor, desc);
+                return distance < 0.6; 
+            });
+        });
+
+        console.log(`Found ${matches.length} matching photos!`);
+        res.status(200).json(matches);
+        
+    } catch (error) {
+        console.error("AI SEARCH CRASH:", error); 
+        res.status(500).json({ message: "Internal server error during face search." });
+    }
+};
+
+module.exports = { uploadMedia, getEventMedia, toggleLike, addComment, searchByFace };

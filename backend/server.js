@@ -9,9 +9,10 @@ const eventRoutes = require('./routes/eventRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
 const socialRoutes = require('./routes/socialRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
-
+const { loadModels } = require('./config/faceApi');
 // Connect to database
 connectDB();
+loadModels();
 
 // Initialize the app FIRST
 const app = express();
