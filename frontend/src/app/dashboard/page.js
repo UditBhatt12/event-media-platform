@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
@@ -11,20 +11,17 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('date'); 
 
-  // 👇 NEW: Notification State
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     const fetchData = async (token) => {
       try {
-        // Fetch Events
         const eventRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/events`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEvents(eventRes.data); 
 
-        // 👇 NEW: Fetch Notifications
         const notifRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -75,20 +72,18 @@ export default function Dashboard() {
           <h1 className="text-3xl font-extrabold text-gray-900">Your Workspace</h1>
           
           <div className="flex items-center gap-4">
-            {/* 👇 NEW: The Notification Bell UI */}
+            {/* The Notification Bell UI */}
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="relative p-2 text-gray-500 hover:text-indigo-600 transition bg-gray-50 rounded-full hover:bg-gray-100"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                {/* The Red Notification Dot */}
                 {notifications.length > 0 && (
                   <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
                 )}
               </button>
 
-              {/* The Dropdown Menu */}
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
                   <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
@@ -137,16 +132,21 @@ export default function Dashboard() {
           </div>
         </div>
         
-        {/* UI Actions */}
+        {/* 👇 FIXED: UI Actions with the new AI Face Search Button */}
         <div className="mb-10 grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link href="/dashboard/upload" className="border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-xl h-48 flex flex-col items-center justify-center text-indigo-500 hover:bg-indigo-50 transition cursor-pointer block">
-            <svg className="w-12 h-12 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+            <svg className="w-10 h-10 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
             <span className="font-semibold text-center block">Upload Media</span>
           </Link>
+
+          <Link href="/dashboard/search-face" className="border-2 border-solid border-purple-200 bg-purple-50/50 rounded-xl h-48 flex flex-col items-center justify-center text-purple-600 hover:bg-purple-100 transition cursor-pointer block shadow-sm">
+            <svg className="w-10 h-10 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+            <span className="font-semibold text-center block">AI Face Search</span>
+          </Link>
           
-          <div className="col-span-1 md:col-span-2 bg-gray-50 rounded-xl border border-gray-200 p-6 flex flex-col justify-center">
-             <h2 className="text-xl font-bold text-gray-800 mb-2">Welcome to EventLens AI!</h2>
-             <p className="text-gray-600">Start by creating an event, then upload photos to it. Our AI will automatically scan faces and objects to generate smart tags for easy searching.</p>
+          <div className="col-span-1 bg-gray-50 rounded-xl border border-gray-200 p-6 flex flex-col justify-center">
+             <h2 className="text-lg font-bold text-gray-800 mb-2">Welcome!</h2>
+             <p className="text-sm text-gray-600">Upload photos or use our AI to instantly find pictures of yourself.</p>
           </div>
         </div>
 
