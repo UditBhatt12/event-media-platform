@@ -1,84 +1,111 @@
 # 📸 EventLens AI: Smart Media Platform
 
-![Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=next.js)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
-![TensorFlow.js](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge\&logo=next.js)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge\&logo=nodedotjs\&logoColor=white)
+![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge\&logo=express\&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge\&logo=mongodb\&logoColor=white)
+![TensorFlow.js](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge\&logo=tensorflow\&logoColor=white)
 
-An intelligent full-stack event media platform designed to streamline photo management. EventLens AI goes beyond standard galleries by integrating facial recognition, role-based access control, cloud media processing, and AI-powered image discovery.
+An intelligent multi-tenant SaaS media platform designed to streamline event photo management. EventLens AI combines facial recognition, cloud-based media processing, and event-level role-based access control (RBAC) to create a seamless experience for organizers and attendees.
 
 ---
 
 ## 🚀 Live Demo
 
-- **Frontend (Vercel):** https://event-media-platform-one.vercel.app
-- **Backend API (Render):** https://event-media-api-tz29.onrender.com
+* **Frontend (Vercel):** https://event-media-platform-one.vercel.app
+* **Backend API (Render):** https://event-media-api-tz29.onrender.com
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-### 🤖 AI-Powered Discovery
+### 🏢 Multi-Tenant Architecture & Event Security
 
-- **Facial Recognition Search Engine:** Uses `@vladmandic/face-api` to extract 128-dimensional face embeddings. Users can upload a selfie to instantly find event photos containing their face.
-- **Smart Image Tagging:** Cloudinary AI automatically analyzes uploaded images and generates contextual tags such as `crowd`, `outdoor`, and `laptop` for efficient searching.
+* Every event acts as an independent, secure workspace.
+* Event creators are automatically assigned the **Owner** role.
+* Event-level RBAC allows users to have different permissions across different events.
+* Private events include a **Request to Join** workflow with owner approval.
 
-### 🔒 Security & Access Control
+### 🤖 AI-Powered Media Discovery
 
-- **Role-Based Access Control (RBAC):** Secure JWT-based authentication with four user roles:
-  - Admin
-  - Photographer
-  - Club Member
-  - Viewer
-- **Private Event Hubs:** Organizers can create private events accessible only to authorized members.
-- **Dynamic Watermarking:** Images are protected through Cloudinary URL transformations that apply watermarks during downloads.
+* **Facial Recognition Search:** Upload a selfie and instantly find all photos containing your face.
+* Uses **face-api.js** with TensorFlow-backed neural networks to generate facial embeddings.
+* **Automatic Image Tagging:** Cloudinary AI generates contextual tags for uploaded images, enabling fast keyword-based search.
 
 ### 💬 Social Community Features
 
-- **Interactive Lightbox:** Responsive image viewer for high-resolution media.
-- **Likes & Comments:** Users can engage with event photos through likes and comments.
-- **Smart Notifications:** Automatic notifications are generated when users receive likes or comments on their uploaded media.
+* Responsive lightbox for viewing high-resolution images.
+* Like and comment system for community engagement.
+* Automated notifications for likes and comments.
+
+### ☁️ Cloud Media Management
+
+* Secure image storage using Cloudinary.
+* Optimized image delivery and processing.
+* Efficient multipart uploads with Multer.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
 ### Frontend
 
-- Next.js (App Router)
-- React 18
-- Tailwind CSS
-- Axios
+* Next.js (App Router)
+* React 18
+* Tailwind CSS
+* Axios
 
 ### Backend
 
-- Node.js
-- Express.js
-- MongoDB Atlas
-- Mongoose
-- JSON Web Tokens (JWT)
-- Multer
+* Node.js
+* Express.js
+* MongoDB Atlas
+* Mongoose
+* JSON Web Tokens (JWT)
+* Multer
 
-### AI & Cloud Services
+### AI & Cloud Infrastructure
 
-- Cloudinary API
-- `@vladmandic/face-api`
-- TensorFlow.js
-- Node Canvas
+* Cloudinary V2 API
+* face-api.js
+* TensorFlow.js
+* Node Canvas
+
+---
+
+## 📂 Project Structure
+
+```text
+event-media-platform/
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── public/
+│   └── ...
+│
+├── backend/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── utils/
+│   └── ...
+│
+└── README.md
+```
 
 ---
 
 ## 💻 Local Setup & Installation
 
-### 1. Clone the Repository
+### 1️⃣ Clone the Repository
 
 ```bash
 git clone https://github.com/UditBhatt12/event-media-platform.git
 cd event-media-platform
 ```
 
-### 2. Backend Setup
+### 2️⃣ Backend Setup
 
 ```bash
 cd backend
@@ -102,58 +129,60 @@ Start the backend server:
 npm run dev
 ```
 
-### 3. Frontend Setup
+### 3️⃣ Frontend Setup
 
 ```bash
 cd frontend
 npm install
 ```
 
-Create a `.env.local` file inside the `frontend` directory:
+Create a `.env.local` file:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5001/api
 ```
 
-Start the frontend development server:
+Start the frontend server:
 
 ```bash
 npm run dev
 ```
 
----
-
-## 📂 Project Structure
+The application will be available at:
 
 ```text
-event-media-platform/
-│
-├── backend/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   ├── routes/
-│   ├── utils/
-│   └── server.js
-│
-├── frontend/
-│   ├── app/
-│   ├── components/
-│   ├── public/
-│   └── lib/
-│
-└── README.md
+http://localhost:3000
 ```
 
 ---
 
+## 🔐 Authentication & Authorization
+
+* JWT-based authentication.
+* Protected API routes.
+* Event-level role management.
+* Private event approval workflow.
+
+---
+
+## 🧠 AI Workflow
+
+1. User uploads images.
+2. Images are stored in Cloudinary.
+3. Facial embeddings are generated using face-api.js.
+4. Cloudinary AI generates image tags.
+5. Users can search by:
+
+   * Selfie upload
+   * Keywords
+   * Event participation
+
+---
 
 
 ## 👨‍💻 Author
 
 **Udit Bhatt**
 
-GitHub: https://github.com/UditBhatt12
 
----
-
+* GitHub: https://github.com/UditBhatt12
