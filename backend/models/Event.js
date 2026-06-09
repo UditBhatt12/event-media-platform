@@ -1,33 +1,26 @@
 const mongoose = require('mongoose');
 
 const eventSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-        trim: true
+    name: { type: String, required: true },
+    description: { type: String },
+    eventDate: { type: Date, required: true }, // 👈 FIXED: Matches frontend
+    location: { type: String },                // 👈 FIXED: Added location
+    isPrivate: { type: Boolean, default: false },
+    
+    // Event-Level Security Fields
+    owner: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User', 
+        required: true 
     },
-    description: {
-        type: String,
-        required: true
-    },
-    category: {
-        type: String,
-        required: true
-    },
-    eventDate: {
-        type: Date,
-        required: true
-    },
-    organizer: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'User'
-    },
-    isPrivate: {
-        type: Boolean,
-        default: false
-    }
+    approvedMembers: [{ 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User' 
+    }],
+    pendingRequests: [{ 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User' 
+    }]
 }, { timestamps: true });
 
-const Event = mongoose.model('Event', eventSchema);
-module.exports = Event;
+module.exports = mongoose.model('Event', eventSchema);
