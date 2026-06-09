@@ -29,7 +29,7 @@ export default function CreateEvent() {
         isPrivate: isPrivate           
       };
 
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/events`, backendPayload, {
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/events/create`, backendPayload, {
         headers: {
           Authorization: `Bearer ${token}`
         }

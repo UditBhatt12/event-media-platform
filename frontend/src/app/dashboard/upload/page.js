@@ -11,11 +11,9 @@ export default function UploadMedia() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
 
-  // 👇 NEW: State to hold the user's real events and the chosen event ID
   const [events, setEvents] = useState([]);
   const [eventId, setEventId] = useState(''); 
 
-  // Fetch the events as soon as the page loads
   useEffect(() => {
     const fetchEvents = async (token) => {
       try {
@@ -24,7 +22,6 @@ export default function UploadMedia() {
         });
         setEvents(res.data);
         
-        // If they have events, auto-select the first one in the dropdown
         if (res.data.length > 0) {
           setEventId(res.data[0]._id);
         }
@@ -62,7 +59,7 @@ export default function UploadMedia() {
 
     const formData = new FormData();
     formData.append('files', file); 
-    formData.append('eventId', eventId); // Using the dynamic ID from the dropdown!
+    formData.append('eventId', eventId); 
 
     try {
       const token = localStorage.getItem('token');
@@ -77,14 +74,17 @@ export default function UploadMedia() {
       setFile(null);
       setPreview(null);
       
-      // Bonus: Send them straight to the gallery they just uploaded to!
       setTimeout(() => {
         router.push(`/event/${eventId}`);
       }, 1500);
 
     } catch (error) {
       console.error(error);
-      setStatus({ type: 'error', message: 'Upload failed. Try again.' });
+      // 👇 FIXED: Now displays the EXACT error message sent by the backend Bouncer!
+      setStatus({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Upload failed. Try again.' 
+      });
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,6 @@ export default function UploadMedia() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <form onSubmit={handleUpload} className="space-y-6">
           
-          {/* 👇 NEW: The Dynamic Dropdown Menu */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Event</label>
             {events.length > 0 ? (
@@ -126,7 +125,6 @@ export default function UploadMedia() {
             )}
           </div>
 
-          {/* File Upload Area */}
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center hover:bg-gray-50 transition-colors relative">
             <input 
               type="file" 

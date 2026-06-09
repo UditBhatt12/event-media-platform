@@ -1,6 +1,7 @@
 const express = require('express');
 
-// 👇 FIXED: Added searchByFace to the imports
+const { protect, authorizeRoles, authorizeEventAccess } = require('../middlewares/authMiddleware');
+
 const { 
     uploadMedia, 
     getEventMedia, 
@@ -9,16 +10,15 @@ const {
     searchByFace 
 } = require('../controllers/mediaController');
 
-const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 const { upload } = require('../config/cloudinary');
 
 const router = express.Router();
 
-// AI Face Search Route (Placed at the top to avoid route conflicts)
+// AI Face Search Route 
 router.post('/search-face', protect, upload.single('file'), searchByFace);
 
-// Upload Route (Admins & Photographers only)
-router.post('/upload', protect, authorizeRoles('Admin', 'Photographer'), upload.array('files', 10), uploadMedia);
+// 👇 FIXED: Multer (upload.array) now runs BEFORE the bouncer (authorizeEventAccess)
+router.post('/upload', protect, upload.array('files', 10), authorizeEventAccess, uploadMedia);
 
 // Event Gallery Route
 router.get('/event/:eventId', getEventMedia);

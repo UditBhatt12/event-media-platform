@@ -1,13 +1,24 @@
 const express = require('express');
-const { createEvent, getEvents } = require('../controllers/eventController');
-const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
+const { protect } = require('../middlewares/authMiddleware');
+
+// 👇 FIXED: Added getAllEvents to the imports
+const { createEvent, requestJoin, approveMember, getEventById, getAllEvents } = require('../controllers/eventController');
 
 const router = express.Router();
 
-// 👇 FIXED: Added the Bouncer. Only Admins and Club Members can create events!
-router.post('/', protect, authorizeRoles('Admin', 'Club Member'), createEvent);
+// 👇 NEW: Get ALL events for the dashboard
+router.get('/', protect, getAllEvents);
 
-// 👇 FIXED: Added 'protect' so only logged-in users can fetch the event list
-router.get('/', protect, getEvents);
+// Create a new event
+router.post('/create', protect, createEvent);
+
+// Get specific Event Details & User Status
+router.get('/:id', protect, getEventById);
+
+// Request to join a private event
+router.post('/:id/request', protect, requestJoin);
+
+// Approve a user's request (Owner only)
+router.post('/:id/approve', protect, approveMember);
 
 module.exports = router;
